@@ -1,3 +1,7 @@
+import com.mda.nubel.scraper.ProductScraper
+
 fun main(args: Array<String>) {
-    println("hello")
+    val scraper = ProductScraper()
+
+    print(scraper.scrapProduct(5020))
 }
