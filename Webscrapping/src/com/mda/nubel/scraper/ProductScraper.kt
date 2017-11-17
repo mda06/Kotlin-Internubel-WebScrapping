@@ -5,6 +5,7 @@ import com.mda.nubel.model.Nutriment
 import com.mda.nubel.model.Product
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import java.io.File
 
 class ProductScraper(var currentSessionId: String) {
     val url: String = "http://www.internubel.be"
@@ -45,6 +46,17 @@ class ProductScraper(var currentSessionId: String) {
         val micro = scrapTable(doc.select("#micro>table").first())
 
         return Product(id = id, name = name, imgUrl = url, units = units, macros = macro,  micros = micro)
+    }
+
+    fun scrapProductIds() : List<Int>{
+        val lst = arrayListOf<Int>()
+        val doc = Jsoup.parse(File("Webscrapping/res/products.html"), "UTF-8")
+        val els = doc.select("ul.text > li > a")
+        els
+            .map { it.attr("href") }
+            .map { it.split("=") }
+            .mapTo(lst) { Integer.parseInt(it[it.size - 1]) }
+        return lst
     }
 
 }
