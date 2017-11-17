@@ -44,9 +44,7 @@ class ProductScraper(var currentSessionId: String) {
         val macro = scrapTable(doc.select("#macro>table").first())
         val micro = scrapTable(doc.select("#micro>table").first())
 
-        print("$name - $id\nUrl: $url\n$units\n$macro\n$micro")
-
-        return Product(id = id, name = name)
+        return Product(id = id, name = name, imgUrl = url, units = units, macros = macro,  micros = micro)
     }
 
 }
