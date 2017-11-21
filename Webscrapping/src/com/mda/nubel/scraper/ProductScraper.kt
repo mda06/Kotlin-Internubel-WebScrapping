@@ -9,18 +9,19 @@ import org.jsoup.nodes.Element
 import java.io.File
 
 class ProductScraper(var currentSessionId: String) {
-    val url: String = "http://www.internubel.be"
-    val cookieSession: String = "ASP.NET_SessionId"
-    val groups: String = "Groups.aspx"
-    val search: String = "Search.aspx"
-    val langEn = "1"
-    val langFr = "2"
-    val langNl = "3"
-    val langAl = "4"
-    var language: String = langEn
+    private val url: String = "http://www.internubel.be"
+    private val cookieSession: String = "ASP.NET_SessionId"
+    private val groups: String = "Groups.aspx"
+    private val search: String = "Search.aspx"
+    val langEn = Pair("en", "3")
+    val langFr = Pair("fr","2")
+    val langNl = Pair("nl", "1")
+    val langAl = Pair("al", "4")
+    var language = langFr
 
-    private fun scrapTable(table: Element) : List<Nutriment> {
+    private fun scrapTable(table: Element?) : List<Nutriment> {
         val lst = arrayListOf<Nutriment>()
+        if(table == null) return lst
         val bodies = table.select("tbody")
         if(bodies.size > 0) {
             val body = bodies.first()
@@ -37,13 +38,17 @@ class ProductScraper(var currentSessionId: String) {
     }
 
     fun scrapProduct(id: Int) : Product  {
-        val doc = Jsoup.connect("$url/$search?lId=$language&pId=$id").cookie(cookieSession, currentSessionId).get()
+        val doc = Jsoup.connect("$url/$search?lId=${language.second}&pId=$id").cookie(cookieSession, currentSessionId).get()
         val name = doc.select("#lblTitle").text()
-        if(name.isNullOrEmpty()) throw NotConnectedException("No session for id: $currentSessionId")
+        if(name.isNullOrEmpty()) {
+            File("Webscrapping/res/error/product_$id.html")
+                    .writeText(doc.toString())
+            throw NotConnectedException("No session for id: $currentSessionId")
+        }
         val url = doc.select("#imgProduct").attr("src")
-        val units = scrapTable(doc.select("#units>table").first())
-        val macro = scrapTable(doc.select("#macro>table").first())
-        val micro = scrapTable(doc.select("#micro>table").first())
+        val units = scrapTable(doc.select("#units>table")?.first())
+        val macro = scrapTable(doc.select("#macro>table")?.first())
+        val micro = scrapTable(doc.select("#micro>table")?.first())
 
         return Product(id = id, name = name, imgUrl = url, units = units, macros = macro,  micros = micro)
     }
@@ -60,7 +65,7 @@ class ProductScraper(var currentSessionId: String) {
     }
 
     private fun scrapProductGroup(g: ProductGroup) {
-        val doc = Jsoup.connect("$url/$groups?lId=$language&gId=$g.id&mgId=$g.mId")
+        val doc = Jsoup.connect("$url/$groups?lId=${language.second}&gId=$g.id&mgId=$g.mId")
                 .cookie(cookieSession, currentSessionId).get()
         for(el in doc.select("ul[class=text] > li a")) {
             val sp = el.attr("href").split("=")
@@ -69,8 +74,8 @@ class ProductScraper(var currentSessionId: String) {
         }
     }
 
+    //Use Element? Can be null
     private fun scrapProductGroupSubChilds(el : Element) : List<ProductGroup> {
-        if(el == null) return arrayListOf()
         val ul = el.select("ul").first()
         if(ul != null) {
             val lst = arrayListOf<ProductGroup>()
@@ -84,8 +89,7 @@ class ProductScraper(var currentSessionId: String) {
                 val g = ProductGroup(gId, mgId, name, path)
                 scrapProductGroup(g)
                 val tmp = scrapProductGroupSubChilds(li)
-                if (tmp != null)
-                    g.addAll(tmp)
+                g.addAll(tmp)
                 lst.add(g)
             }
             return lst
