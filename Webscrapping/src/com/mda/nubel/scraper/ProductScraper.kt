@@ -39,11 +39,15 @@ class ProductScraper(var currentSessionId: String) {
 
     fun scrapProduct(id: Int) : Product  {
         val doc = Jsoup.connect("$url/$search?lId=${language.second}&pId=$id").cookie(cookieSession, currentSessionId).get()
-        val name = doc.select("#lblTitle").text()
+        var name = doc.select("#lblTitle").text()
         if(name.isNullOrEmpty()) {
-            File("Webscrapping/res/error/product_$id.html")
-                    .writeText(doc.toString())
-            throw NotConnectedException("No session for id: $currentSessionId")
+            //BUG: Sometimes it's lblTite and not lblTitle
+            name = doc.select("#lblTite").text()
+            if(name.isNullOrEmpty()) {
+                File("Webscrapping/res/error/product_$id.html")
+                        .writeText(doc.toString())
+                throw NotConnectedException("No session for id: $currentSessionId")
+            }
         }
         val url = doc.select("#imgProduct").attr("src")
         val units = scrapTable(doc.select("#units>table")?.first())
